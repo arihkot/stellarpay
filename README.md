@@ -4,7 +4,7 @@
 
 ## Live Demo
 
-- **Frontend URL**: [https://stellarpay.pages.dev](https://stellarpay.pages.dev)
+- **Frontend URL**: [https://stellarpay-3e3.pages.dev](https://stellarpay-3e3.pages.dev)
 - **Network**: Stellar Testnet
 
 ## Deployed Contracts

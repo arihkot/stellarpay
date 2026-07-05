@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { useContract } from '../hooks/useContract.js'
 import { STELLAR_EXPERT_TX } from '../lib/constants.js'
@@ -16,7 +16,7 @@ export default function EmployerDashboard() {
   const [fundAmount, setFundAmount] = useState('')
   const [activeTab, setActiveTab] = useState('workers')
 
-  useState(() => {
+  useEffect(() => {
     if (publicKey) {
       loadEmployerData()
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { useContract } from '../hooks/useContract.js'
 import { getUsdcBalance } from '../hooks/useWallet.js'
@@ -13,13 +13,7 @@ export default function WorkerDashboard() {
   const [loading, setLoading] = useState(true)
   const [showCashOut, setShowCashOut] = useState(false)
 
-  useEffect(() => {
-    if (publicKey) {
-      loadWorkerData()
-    }
-  }, [publicKey])
-
-  async function loadWorkerData() {
+  const loadWorkerData = useCallback(async () => {
     setLoading(true)
     try {
       const balance = await getUsdcBalance()
@@ -46,7 +40,13 @@ export default function WorkerDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [publicKey, contract])
+
+  useEffect(() => {
+    if (publicKey) {
+      loadWorkerData()
+    }
+  }, [loadWorkerData, publicKey])
 
   if (!publicKey) {
     return (

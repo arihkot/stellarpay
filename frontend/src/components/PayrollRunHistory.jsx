@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 
 export default function PayrollRunHistory({ contract }) {
   const [runs, setRuns] = useState([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    loadHistory()
-  }, [])
-
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     setLoading(true)
     try {
       const history = []
@@ -36,7 +32,11 @@ export default function PayrollRunHistory({ contract }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [contract])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
 
   return (
     <div className="bg-gray-800 rounded-xl p-6">

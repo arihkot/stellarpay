@@ -4,7 +4,7 @@ import {
   TransactionBuilder,
   BASE_FEE,
 } from '@stellar/stellar-sdk'
-import { getHorizonClient, getNetworkPassphrase } from './stellarClient.js'
+import { getHorizonClient } from './stellarClient.js'
 import {
   PUBLIC_ANCHOR_HOME_DOMAIN,
   PUBLIC_NETWORK_PASSPHRASE,

@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
-import { useContract } from '../hooks/useContract.js'
 import { getBalances } from '../hooks/useWallet.js'
 import { getHorizonClient } from '../lib/stellarClient.js'
 import { USDC_ISSUER, STELLAR_EXPERT_TX } from '../lib/constants.js'
-import { checkTrustline, establishTrustline } from '../lib/sepHelpers.js'
+import { establishTrustline } from '../lib/sepHelpers.js'
 import { signTx } from '../hooks/useWallet.js'
 import CashOutFlow from './CashOutFlow.jsx'
 
 export default function WorkerDashboard() {
   const { publicKey, connect } = useWalletContext()
-  const contract = useContract()
   const [usdcBalance, setUsdcBalance] = useState(0)
   const [xlmBalance, setXlmBalance] = useState(0)
   const [hasTrustline, setHasTrustline] = useState(true)

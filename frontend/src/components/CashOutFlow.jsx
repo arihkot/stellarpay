@@ -9,7 +9,7 @@ import {
   pollSep24Transaction,
 } from '../lib/sepHelpers.js'
 import { executePathPayment } from '../lib/sepHelpers.js'
-import { USDC_ISSUER, PUBLIC_HORIZON_URL, STELLAR_EXPERT_TX } from '../lib/constants.js'
+import { USDC_ISSUER, STELLAR_EXPERT_TX } from '../lib/constants.js'
 
 export default function CashOutFlow({ usdcBalance, onClose }) {
   const { publicKey } = useWalletContext()

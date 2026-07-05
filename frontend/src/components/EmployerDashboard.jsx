@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { useContract } from '../hooks/useContract.js'
 import { STELLAR_EXPERT_TX } from '../lib/constants.js'
+import { getBalances } from '../hooks/useWallet.js'
+import { USDC_ISSUER } from '../lib/constants.js'
+import { checkTrustline, establishTrustline } from '../lib/sepHelpers.js'
+import { signTx } from '../hooks/useWallet.js'
 import WorkerList from './WorkerList.jsx'
 import RunPayrollForm from './RunPayrollForm.jsx'
 import PayrollRunHistory from './PayrollRunHistory.jsx'
@@ -10,26 +14,42 @@ export default function EmployerDashboard() {
   const { publicKey, connect } = useWalletContext()
   const contract = useContract()
   const [poolBalance, setPoolBalance] = useState(0)
-  const [workers, _setWorkers] = useState([])
+  const [workerCount, setWorkerCount] = useState(0)
+  const [usdcBalance, setUsdcBalance] = useState(0)
+  const [xlmBalance, setXlmBalance] = useState(0)
+  const [hasTrustline, setHasTrustline] = useState(true)
   const [showRegisterForm, setShowRegisterForm] = useState(false)
   const [adminAddress, setAdminAddress] = useState('')
   const [fundAmount, setFundAmount] = useState('')
   const [activeTab, setActiveTab] = useState('workers')
+  const [settingTrustline, setSettingTrustline] = useState(false)
+
+  const loadEmployerData = useCallback(async () => {
+    try {
+      const balances = await getBalances()
+
+      const native = balances.find((b) => b.asset_type === 'native')
+      setXlmBalance(native ? parseFloat(native.balance) : 0)
+
+      const usdc = balances.find(
+        (b) => b.asset_type !== 'native' && b.asset_code === 'USDC' && b.asset_issuer === USDC_ISSUER,
+      )
+      setUsdcBalance(usdc ? parseFloat(usdc.balance) : 0)
+      setHasTrustline(!!usdc)
+
+      const info = await contract.getEmployerInfo(publicKey)
+      setPoolBalance(Number(info.pool_balance) / 1e7)
+      setWorkerCount(info.worker_count || 0)
+    } catch (_err) {
+      // silently fail on first load
+    }
+  }, [publicKey, contract])
 
   useEffect(() => {
     if (publicKey) {
       loadEmployerData()
     }
-  }, [publicKey])
-
-  async function loadEmployerData() {
-    try {
-      const info = await contract.getEmployerInfo(publicKey)
-      setPoolBalance(Number(info.pool_balance) / 1e7)
-    } catch (_err) {
-      // silently fail on first load
-    }
-  }
+  }, [loadEmployerData, publicKey])
 
   async function handleRegister() {
     try {
@@ -56,6 +76,19 @@ export default function EmployerDashboard() {
     }
   }
 
+  async function handleEstablishTrustline() {
+    setSettingTrustline(true)
+    try {
+      await establishTrustline(publicKey, signTx, 'USDC', USDC_ISSUER)
+      setHasTrustline(true)
+      await loadEmployerData()
+    } catch (err) {
+      alert('Failed to establish trustline: ' + err.message)
+    } finally {
+      setSettingTrustline(false)
+    }
+  }
+
   if (!publicKey) {
     return (
       <div className="max-w-lg mx-auto mt-20 text-center px-4">
@@ -75,14 +108,47 @@ export default function EmployerDashboard() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Employer Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {parseFloat(xlmBalance) < 1.5 && (
+        <div className="mb-6 p-4 rounded-lg bg-yellow-900/20 border border-yellow-800">
+          <p className="text-sm text-yellow-400">
+            Low XLM balance ({parseFloat(xlmBalance).toFixed(2)} XLM). You need at least 1.5 XLM for transaction fees.
+          </p>
+          <a
+            href="https://friendbot.stellar.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+          >
+            Fund via Friendbot
+          </a>
+        </div>
+      )}
+
+      {!hasTrustline && (
+        <div className="mb-6 p-4 rounded-lg bg-blue-900/20 border border-blue-800">
+          <p className="text-sm text-blue-400">You don&apos;t have a USDC trustline yet. This is needed for payments.</p>
+          <button
+            onClick={handleEstablishTrustline}
+            disabled={settingTrustline}
+            className="mt-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors text-sm"
+          >
+            {settingTrustline ? 'Setting up...' : 'Establish USDC Trustline'}
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-gray-800 rounded-xl p-5">
           <p className="text-sm text-gray-400 mb-1">Pool Balance</p>
           <p className="text-2xl font-bold">${poolBalance.toFixed(2)} USDC</p>
         </div>
         <div className="bg-gray-800 rounded-xl p-5">
           <p className="text-sm text-gray-400 mb-1">Workers</p>
-          <p className="text-2xl font-bold">{workers.length}</p>
+          <p className="text-2xl font-bold">{workerCount}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-5">
+          <p className="text-sm text-gray-400 mb-1">USDC Wallet</p>
+          <p className="text-2xl font-bold">${usdcBalance.toFixed(2)}</p>
         </div>
         {contract.lastTxHash && (
           <div className="bg-gray-800 rounded-xl p-5">
@@ -189,7 +255,7 @@ export default function EmployerDashboard() {
       </div>
 
       {activeTab === 'workers' && (
-        <WorkerList publicKey={publicKey} contract={contract} />
+        <WorkerList publicKey={publicKey} contract={contract} onUpdate={loadEmployerData} />
       )}
       {activeTab === 'payroll' && (
         <RunPayrollForm

@@ -6,8 +6,10 @@ import {
   getSep38Quote,
   authSep10,
   initiateSep24Withdrawal,
+  pollSep24Transaction,
 } from '../lib/sepHelpers.js'
-import { USDC_ISSUER } from '../lib/constants.js'
+import { executePathPayment } from '../lib/sepHelpers.js'
+import { USDC_ISSUER, PUBLIC_HORIZON_URL, STELLAR_EXPERT_TX } from '../lib/constants.js'
 
 export default function CashOutFlow({ usdcBalance, onClose }) {
   const { publicKey } = useWalletContext()
@@ -18,8 +20,11 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
   const [sellAmount, setSellAmount] = useState('')
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [quote, setQuote] = useState(null)
+  const [pathTxHash, setPathTxHash] = useState(null)
+  const [sep24TxHash, setSep24TxHash] = useState(null)
   const [sep24Url, setSep24Url] = useState(null)
-  const [_status, setStatus] = useState(null)
+  const [sep24Id, setSep24Id] = useState(null)
+  const [polling, setPolling] = useState(false)
 
   async function loadAssets() {
     setLoading(true)
@@ -35,7 +40,6 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
           buyDeliveryMethods: data.buy_delivery_methods || [],
         }))
       setAssets(assetList)
-      setStep('select')
     } catch (err) {
       setError('Failed to load available currencies: ' + err.message)
     } finally {
@@ -63,12 +67,42 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
     }
   }
 
+  async function handleExecutePath() {
+    setLoading(true)
+    setError(null)
+    try {
+      const sellAssetStr = `stellar:USDC:${USDC_ISSUER}`
+      const buyAssetStr = selectedAsset.issuer
+        ? `${selectedAsset.code}:${selectedAsset.issuer}`
+        : selectedAsset.code
+
+      const minBuyAmount = Math.floor(Number(quote.buy_amount) * 0.99).toString()
+      const sellStroops = String(Math.floor(parseFloat(sellAmount) * 1e7))
+
+      const result = await executePathPayment(
+        publicKey,
+        signTx,
+        sellAssetStr,
+        buyAssetStr,
+        sellStroops,
+        minBuyAmount,
+      )
+
+      setPathTxHash(result.hash)
+      setStep('path_done')
+    } catch (err) {
+      setError('Path payment failed: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function handleCashOut() {
     setLoading(true)
     setError(null)
     try {
       const authToken = await authSep10(publicKey, (txXDR, _opts) =>
-        signTx(txXDR, { networkPassphrase: getNetworkPassphrase() }),
+        signTx(txXDR, { networkPassphrase: undefined }),
       )
 
       const withdrawalResult = await initiateSep24Withdrawal(
@@ -76,6 +110,10 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
         selectedAsset.code,
         sellAmount,
       )
+
+      if (withdrawalResult.id) {
+        setSep24Id(withdrawalResult.id)
+      }
 
       if (withdrawalResult.url) {
         setSep24Url(withdrawalResult.url)
@@ -94,21 +132,57 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
             'sep24_withdrawal',
             `width=${width},height=${height},left=${left},top=${top}`,
           )
-
           if (!popup) {
             window.location.href = withdrawalResult.url
           }
         }
       }
 
-      if (withdrawalResult.id) {
-        setStatus('pending')
-      }
+      startPolling()
     } catch (err) {
       setError('Cash out failed: ' + err.message)
-    } finally {
       setLoading(false)
     }
+  }
+
+  async function startPolling() {
+    if (!sep24Id) return
+    setPolling(true)
+    setLoading(true)
+
+    let attempts = 0
+    const maxAttempts = 60
+
+    const poll = setInterval(async () => {
+      attempts++
+      try {
+        const txStatus = await pollSep24Transaction(sep24Id)
+        if (txStatus.stellar_transaction_id) {
+          setSep24TxHash(txStatus.stellar_transaction_id)
+        }
+
+        const status = txStatus.status || txStatus.kind
+        if (status === 'completed' || status === 'error') {
+          clearInterval(poll)
+          setPolling(false)
+          setLoading(false)
+          if (status === 'completed') {
+            setStep('success')
+          } else {
+            setError(`Withdrawal ${status}: ${txStatus.message || ''}`)
+          }
+        }
+      } catch (_e) {
+        // continue polling
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(poll)
+        setPolling(false)
+        setLoading(false)
+        setError('Withdrawal is taking longer than expected. Please check back later.')
+      }
+    }, 3000)
   }
 
   return (
@@ -116,10 +190,7 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
       <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">Cash Out USDC</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -129,9 +200,8 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
         {step === 'select' && (
           <>
             <p className="text-sm text-gray-400 mb-4">
-              Convert USDC to local currency using the Stellar anchor network.
+              Convert USDC to local currency using Stellar path payments and the anchor network.
             </p>
-
             {assets.length === 0 && (
               <button
                 onClick={loadAssets}
@@ -141,7 +211,6 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
                 {loading ? 'Loading...' : 'Load Available Currencies'}
               </button>
             )}
-
             {assets.length > 0 && (
               <div className="space-y-4">
                 <div>
@@ -165,7 +234,6 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
                     </button>
                   )}
                 </div>
-
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">Destination Currency</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -184,7 +252,6 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
                     ))}
                   </div>
                 </div>
-
                 <button
                   onClick={handleGetQuote}
                   disabled={!sellAmount || !selectedAsset || loading}
@@ -206,20 +273,12 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-400">You receive</span>
-                <span className="text-sm">
-                  {quote.buy_amount} {selectedAsset?.code}
-                </span>
+                <span className="text-sm">{quote.buy_amount} {selectedAsset?.code}</span>
               </div>
               {quote.fee && (
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-400">Fee</span>
                   <span className="text-sm">{quote.fee.total} {quote.fee.asset?.split(':')[0]}</span>
-                </div>
-              )}
-              {quote.total_price && (
-                <div className="flex justify-between pt-2 border-t border-gray-600">
-                  <span className="text-sm text-gray-400">Rate</span>
-                  <span className="text-sm">1 USDC = {Number(quote.total_price) / Number(quote.sell_amount)} {selectedAsset?.code}</span>
                 </div>
               )}
             </div>
@@ -232,11 +291,46 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
                 Back
               </button>
               <button
+                onClick={handleExecutePath}
+                disabled={loading}
+                className="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors text-sm"
+              >
+                {loading ? 'Converting...' : 'Convert via Path Payment'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'path_done' && pathTxHash && (
+          <>
+            <div className="bg-green-900/30 border border-green-800 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-400 font-medium">Path Payment Complete</p>
+              <p className="text-xs text-green-500 mt-1">
+                USDC converted to {selectedAsset?.code}. You can now withdraw.
+              </p>
+              <a
+                href={`${STELLAR_EXPERT_TX}/${pathTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 mt-2 inline-block"
+              >
+                View tx on StellarExpert
+              </a>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep('quote')}
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm"
+              >
+                Back
+              </button>
+              <button
                 onClick={handleCashOut}
                 disabled={loading}
                 className="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 disabled:opacity-50 transition-colors text-sm"
               >
-                {loading ? 'Processing...' : 'Confirm Cash Out'}
+                {loading ? 'Processing...' : 'Withdraw via Anchor'}
               </button>
             </div>
           </>
@@ -244,27 +338,80 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
 
         {step === 'sep24' && (
           <div className="text-center py-4">
-            <div className="animate-pulse mb-3">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            {polling && (
+              <>
+                <div className="animate-pulse mb-3">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+                <p className="text-sm text-gray-400">
+                  Waiting for withdrawal completion...
+                </p>
+              </>
+            )}
+            {!polling && (
+              <p className="text-sm text-gray-400">
+                Complete the withdrawal in the anchor window.
+              </p>
+            )}
+            {sep24Url && (
+              <a
+                href={sep24Url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 block mt-2 text-sm"
+              >
+                Re-open withdrawal window
+              </a>
+            )}
+            {!polling && (
+              <button
+                onClick={onClose}
+                className="mt-4 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm"
+              >
+                Done
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === 'success' && (
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-green-900/30 flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-            <p className="text-sm text-gray-400">
-              Complete the withdrawal in the anchor window.
-              {sep24Url && (
+            <p className="text-sm font-medium text-green-400">Cash Out Complete!</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Your {quote?.buy_amount} {selectedAsset?.code} is on its way.
+            </p>
+            <div className="mt-3 space-y-1">
+              {pathTxHash && (
                 <a
-                  href={sep24Url}
+                  href={`${STELLAR_EXPERT_TX}/${pathTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 block mt-2"
+                  className="text-xs text-blue-400 hover:text-blue-300 block"
                 >
-                  Re-open withdrawal window
+                  Path Payment Tx
                 </a>
               )}
-            </p>
+              {sep24TxHash && (
+                <a
+                  href={`${STELLAR_EXPERT_TX}/${sep24TxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-400 hover:text-blue-300 block"
+                >
+                  Withdrawal Tx
+                </a>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="mt-4 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm"
             >
-              Done
+              Close
             </button>
           </div>
         )}

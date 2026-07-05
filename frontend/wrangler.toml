@@ -1,0 +1,15 @@
+name = "stellarpay"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "dist"
+
+[vars]
+VITE_PUBLIC_RPC_URL = "https://soroban-testnet.stellar.org"
+VITE_PUBLIC_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+VITE_PUBLIC_HORIZON_URL = "https://horizon-testnet.stellar.org"
+VITE_PUBLIC_ANCHOR_HOME_DOMAIN = "https://testanchor.stellar.org"
+
+[[env.production.vars]]
+VITE_PUBLIC_CONTRACT_ID = ""
+
+[env.production]
+compatibility_date = "2025-01-01"

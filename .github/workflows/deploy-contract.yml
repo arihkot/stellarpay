@@ -1,0 +1,53 @@
+name: Deploy Contract
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: 'Target network'
+        required: true
+        default: 'testnet'
+        type: choice
+        options:
+          - testnet
+          - mainnet
+
+jobs:
+  deploy-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/payroll
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-unknown-unknown
+
+      - name: Install Stellar CLI
+        run: |
+          curl -sL https://github.com/stellar/stellar-cli/releases/latest/download/stellar-cli-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          sudo mv stellar /usr/local/bin/
+
+      - name: Build contract
+        run: |
+          cargo build --release --target wasm32-unknown-unknown
+
+      - name: Generate deploy account
+        run: |
+          stellar keys generate deployer --network ${{ inputs.network }} --fund
+
+      - name: Deploy contract
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32-unknown-unknown/release/payroll.wasm \
+            --source-account deployer \
+            --network ${{ inputs.network }} \
+            --alias payroll
+
+      - name: Output contract ID
+        run: |
+          echo "Contract ID:"
+          stellar contract id --alias payroll --network ${{ inputs.network }}

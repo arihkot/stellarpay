@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 
-export default function Landing() {
+export default function Landing({ navigateTo }) {
   const { connected, connect, disconnect, loading, publicKey } = useWalletContext()
   const [error, setError] = useState(null)
 
@@ -34,18 +34,18 @@ export default function Landing() {
                 Connected: {publicKey?.slice(0, 6)}...{publicKey?.slice(-4)}
               </div>
               <div className="flex gap-3">
-                <a
-                  href="/app?role=employer"
+                <button
+                  onClick={() => navigateTo('employer')}
                   className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors font-medium"
                 >
                   Employer Dashboard
-                </a>
-                <a
-                  href="/app?role=worker"
+                </button>
+                <button
+                  onClick={() => navigateTo('worker')}
                   className="px-6 py-3 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors font-medium"
                 >
                   Worker Dashboard
-                </a>
+                </button>
               </div>
               <button
                 onClick={disconnect}

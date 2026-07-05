@@ -21,9 +21,16 @@ function App() {
     }
   }, [])
 
+  async function navigateTo(role) {
+    const url = new URL(window.location)
+    url.searchParams.set('role', role)
+    window.history.pushState({}, '', url)
+    setRole(role)
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
+      <Navbar navigateTo={navigateTo} />
 
       {error && (
         <div className="max-w-5xl mx-auto px-4 pt-4">
@@ -44,7 +51,7 @@ function App() {
       ) : role === 'worker' ? (
         <WorkerDashboard />
       ) : (
-        <Landing />
+        <Landing navigateTo={navigateTo} />
       )}
     </div>
   )

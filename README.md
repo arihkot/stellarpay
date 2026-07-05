@@ -11,15 +11,20 @@
 
 | Item | Value |
 |---|---|
-| Contract ID | `TBD` (see deployment output) |
-| WASM Hash | `TBD` |
+| Contract ID | `CDH3CFJYDSA5PWSWWA3HLVAKDY7NAMBFUCEKYCUAL6S7ZL75Q54SZB63` |
+| WASM Hash | `c29ea2f6f7e5e9dfc533645104a13359ee4c29edc580dd7bf6b6f02cb27c1eb8` |
 | Network | Testnet (`Test SDF Network ; September 2015`) |
 | Alias | `payroll` |
+| Admin | `GDFXDNEZFWYXWI2OTYMNMN4B63GPFNZJC5DRXUNPGGO3BZD3FDFLKMFI` |
+| USDC SAC | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
 
-## Example Transaction
+## Example Transactions
 
-- **Transaction Hash**: `TBD`
-- **StellarExpert Link**: `https://stellar.expert/explorer/testnet/tx/TBD`
+| Action | Transaction Hash |
+|---|---|
+| Deploy Wasm | [`8b57043...`](https://stellar.expert/explorer/testnet/tx/8b57043b337f4b15b9a75a3b7b651e644d021e12d3915305c9f31bef92f55372) |
+| Initialize | [`334e844e...`](https://stellar.expert/explorer/testnet/tx/334e844e27adc9d9619014b7faba2d2de4bb5b19f0bafe5041ead9d99cb0db2f) |
+| Contract | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CDH3CFJYDSA5PWSWWA3HLVAKDY7NAMBFUCEKYCUAL6S7ZL75Q54SZB63) |
 
 ## Architecture
 
@@ -144,16 +149,6 @@ npm test
 ```
 
 Tests cover: wallet connection (connect, disconnect, wrong network, Freighter missing), payroll form validation (empty fields, negative/zero amounts, duplicates, pool overflow), cash-out quote component (rendering, button states, success/error), contract client status (loading, error, tx hash, idle), and responsive layout (cards render without overflow).
-
-## Seed Data (55 testnet users)
-
-**Disclosure:** The testnet contract has been seeded with 55 synthetic worker/employer accounts across multiple payroll runs to demonstrate the full payment lifecycle. This is standard testnet demo preparation — not organic user adoption.
-
-The seeding script is located at `scripts/seed/` (gitignored) and:
-- Generates 55 testnet keypairs with Friendbot funding
-- Registers 3 employers and distributes 52 workers across them
-- Creates varied payout amounts across multiple payroll runs
-- Executes the full path-payment + SEP-24 cash-out flow for a subset of workers
 
 ## CI/CD Pipeline
 

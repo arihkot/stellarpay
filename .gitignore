@@ -10,3 +10,4 @@ target/
 /scripts/seed/
 /scripts/seed-output/
 /scripts/keys/
+test_snapshots/

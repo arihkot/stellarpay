@@ -45,7 +45,7 @@ async function registerEmployer(publicKey, adminAddress, signTransaction) {
   }
 
   const assembled = rpc.assembleTransaction(sim.transactionData.build(), getNetworkPassphrase(), sim).build()
-  const signed = await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
+  await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
   const txSigned = rpc.parseRawSimulation(sim)
   const finalTx = rpc.assembleTransaction(txSigned.transactionData.build(), getNetworkPassphrase(), txSigned).build()
 
@@ -75,7 +75,7 @@ async function fundPool(publicKey, amount, signTransaction) {
   }
 
   const assembled = rpc.assembleTransaction(sim.transactionData.build(), getNetworkPassphrase(), sim).build()
-  const signed = await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
+  await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
 
   const result = await rpcClient.sendTransaction(assembled)
   if (result.status === 'ERROR') {
@@ -103,7 +103,7 @@ async function addWorker(publicKey, workerAddress, signTransaction) {
   }
 
   const assembled = rpc.assembleTransaction(sim.transactionData.build(), getNetworkPassphrase(), sim).build()
-  const signed = await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
+  await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
 
   const result = await rpcClient.sendTransaction(assembled)
   if (result.status === 'ERROR') {

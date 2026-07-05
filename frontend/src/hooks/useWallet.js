@@ -44,7 +44,7 @@ export async function connectWallet() {
       throw new Error(`Wrong network: ${network}. Please switch to Testnet.`)
     }
 
-    const access = await requestAccess()
+    const _access = await requestAccess()
     const publicKey = await getAddress()
     if (!publicKey) {
       throw new Error('Failed to get wallet address')

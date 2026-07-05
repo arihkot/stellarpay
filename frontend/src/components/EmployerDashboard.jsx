@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { useContract } from '../hooks/useContract.js'
-import { STELLAR_EXPERT_TX, STELLAR_EXPERT_CONTRACT } from '../lib/constants.js'
+import { STELLAR_EXPERT_TX } from '../lib/constants.js'
 import WorkerList from './WorkerList.jsx'
 import RunPayrollForm from './RunPayrollForm.jsx'
 import PayrollRunHistory from './PayrollRunHistory.jsx'
@@ -10,7 +10,7 @@ export default function EmployerDashboard() {
   const { publicKey, connect } = useWalletContext()
   const contract = useContract()
   const [poolBalance, setPoolBalance] = useState(0)
-  const [workers, setWorkers] = useState([])
+  const [workers, _setWorkers] = useState([])
   const [showRegisterForm, setShowRegisterForm] = useState(false)
   const [adminAddress, setAdminAddress] = useState('')
   const [fundAmount, setFundAmount] = useState('')
@@ -26,7 +26,7 @@ export default function EmployerDashboard() {
     try {
       const info = await contract.getEmployerInfo(publicKey)
       setPoolBalance(Number(info.pool_balance) / 1e7)
-    } catch (err) {
+    } catch (_err) {
       // silently fail on first load
     }
   }

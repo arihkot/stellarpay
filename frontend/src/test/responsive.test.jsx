@@ -22,7 +22,7 @@ function ResponsiveDashboard() {
 
 describe('Responsive layout', () => {
   it('renders dashboard without overflowing on mobile viewport', () => {
-    const { container } = render(<ResponsiveDashboard />)
+    render(<ResponsiveDashboard />)
     expect(screen.getByTestId('dashboard-layout')).toBeInTheDocument()
     expect(screen.getByTestId('card-balance')).toBeInTheDocument()
     expect(screen.getByTestId('card-workers')).toBeInTheDocument()

@@ -3,7 +3,6 @@ import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { signTx } from '../hooks/useWallet.js'
 import {
   getSep38Info,
-  getSep38Prices,
   getSep38Quote,
   authSep10,
   initiateSep24Withdrawal,
@@ -20,7 +19,7 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [quote, setQuote] = useState(null)
   const [sep24Url, setSep24Url] = useState(null)
-  const [status, setStatus] = useState(null)
+  const [_status, setStatus] = useState(null)
 
   async function loadAssets() {
     setLoading(true)
@@ -68,7 +67,7 @@ export default function CashOutFlow({ usdcBalance, onClose }) {
     setLoading(true)
     setError(null)
     try {
-      const authToken = await authSep10(publicKey, (txXDR, opts) =>
+      const authToken = await authSep10(publicKey, (txXDR, _opts) =>
         signTx(txXDR, { networkPassphrase: getNetworkPassphrase() }),
       )
 

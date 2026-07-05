@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
-import { STELLAR_EXPERT_CONTRACT } from '../lib/constants.js'
-
 export default function Navbar() {
   const { connected, publicKey, connect, disconnect, loading } = useWalletContext()
   const [showMenu, setShowMenu] = useState(false)

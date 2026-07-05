@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
 import { useContract } from '../hooks/useContract.js'
 import { getUsdcBalance } from '../hooks/useWallet.js'
-import { STELLAR_EXPERT_TX } from '../lib/constants.js'
+
 import CashOutFlow from './CashOutFlow.jsx'
 
 export default function WorkerDashboard() {

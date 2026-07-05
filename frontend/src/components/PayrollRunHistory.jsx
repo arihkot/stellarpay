@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { STELLAR_EXPERT_TX } from '../lib/constants.js'
+
 
 export default function PayrollRunHistory({ contract }) {
   const [runs, setRuns] = useState([])
@@ -31,7 +31,7 @@ export default function PayrollRunHistory({ contract }) {
       }
 
       setRuns(history.reverse())
-    } catch (err) {
+    } catch (_err) {
       // silently fail
     } finally {
       setLoading(false)

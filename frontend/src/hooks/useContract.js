@@ -11,7 +11,6 @@ import {
   getPayrollRun,
 } from '../lib/contractClient.js'
 import { signTx } from '../hooks/useWallet.js'
-import { PUBLIC_CONTRACT_ID } from '../lib/constants.js'
 
 export function useContract() {
   const [loading, setLoading] = useState(false)

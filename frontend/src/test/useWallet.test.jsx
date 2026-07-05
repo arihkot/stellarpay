@@ -49,7 +49,7 @@ describe('useWallet hook', () => {
     await act(async () => {
       try {
         await result.current.connect()
-      } catch (e) {
+      } catch (_e) {
         // expected
       }
     })
@@ -67,7 +67,7 @@ describe('useWallet hook', () => {
     await act(async () => {
       try {
         await result.current.connect()
-      } catch (e) {
+      } catch (_e) {
         // expected
       }
     })

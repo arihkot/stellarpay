@@ -4,7 +4,7 @@ import {
   Address,
   nativeToScVal,
   scValToNative,
-  xdr,
+  TransactionBuilder,
 } from '@stellar/stellar-sdk'
 import { getRpcClient, getNetworkPassphrase } from './stellarClient.js'
 import { PUBLIC_CONTRACT_ID } from './constants.js'
@@ -83,9 +83,10 @@ async function signAndSend(simResult, signTransaction) {
     .assembleTransaction(simResult.transactionData.build(), getNetworkPassphrase(), simResult)
     .build()
 
-  await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
+  const signedXdr = await signTransaction(assembled.toXDR(), { networkPassphrase: getNetworkPassphrase() })
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, getNetworkPassphrase())
 
-  const result = await withRetry(() => rpcClient.sendTransaction(assembled))
+  const result = await withRetry(() => rpcClient.sendTransaction(signedTx))
   if (result.status === 'ERROR') {
     throw new Error(`Transaction failed: ${result.error || JSON.stringify(result)}`)
   }

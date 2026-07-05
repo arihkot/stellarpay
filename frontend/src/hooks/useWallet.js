@@ -34,8 +34,9 @@ export function getState() {
 
 export async function connectWallet() {
   try {
-    const connected = await isConnected()
-    if (!connected) {
+    const connResult = await isConnected()
+    const isWalletConnected = connResult?.isConnected ?? connResult
+    if (!isWalletConnected) {
       throw new Error('Freighter is not connected')
     }
 
@@ -45,8 +46,9 @@ export async function connectWallet() {
       throw new Error(`Wrong network: ${networkName}. Please switch to Testnet.`)
     }
 
-    const _access = await requestAccess()
-    const publicKey = await getAddress()
+    await requestAccess()
+    const addrResult = await getAddress()
+    const publicKey = addrResult?.address || addrResult || ''
     if (!publicKey) {
       throw new Error('Failed to get wallet address')
     }
@@ -96,10 +98,10 @@ export function getNetworkInfo() {
 
 export async function signTx(transactionXDR, opts = {}) {
   try {
-    const signed = await signTransaction(transactionXDR, {
+    const result = await signTransaction(transactionXDR, {
       networkPassphrase: opts.networkPassphrase || PUBLIC_NETWORK_PASSPHRASE,
     })
-    return signed
+    return result?.signedTxXdr || result
   } catch (err) {
     throw new Error(`Failed to sign transaction: ${err.message}`)
   }

@@ -39,9 +39,10 @@ export async function connectWallet() {
       throw new Error('Freighter is not connected')
     }
 
-    const network = await getNetwork()
-    if (!network.includes('TESTNET') && network !== 'FUTURENET') {
-      throw new Error(`Wrong network: ${network}. Please switch to Testnet.`)
+    const networkObj = await getNetwork()
+    const networkName = networkObj?.network || networkObj || ''
+    if (!networkName.includes('TESTNET') && networkName !== 'FUTURENET') {
+      throw new Error(`Wrong network: ${networkName}. Please switch to Testnet.`)
     }
 
     const _access = await requestAccess()
@@ -53,7 +54,7 @@ export async function connectWallet() {
     walletState = {
       connected: true,
       publicKey,
-      network,
+      network: networkName,
       networkPassphrase: PUBLIC_NETWORK_PASSPHRASE,
     }
 

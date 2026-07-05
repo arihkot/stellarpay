@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.soroban/
+target/
+.env
+.env.local
+.stellar/
+*.log
+.DS_Store
+/scripts/seed/
+/scripts/seed-output/
+/scripts/keys/

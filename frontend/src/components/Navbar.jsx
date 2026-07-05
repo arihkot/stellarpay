@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useWalletContext } from '../contexts/WalletContext.jsx'
-export default function Navbar() {
+export default function Navbar({ navigateTo }) {
   const { connected, publicKey, connect, disconnect, loading } = useWalletContext()
   const [showMenu, setShowMenu] = useState(false)
 
@@ -13,9 +13,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-white tracking-tight">
+            <button
+              onClick={() => navigateTo && navigateTo(null)}
+              className="text-xl font-bold text-white tracking-tight hover:text-blue-400 transition-colors"
+            >
               StellarPay
-            </span>
+            </button>
             <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
               Testnet
             </span>
